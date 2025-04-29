@@ -21,6 +21,7 @@ Route::get('/purchase/invoice/{purchase}', function (Purchase $purchase) {
     return view('invoice', compact('purchase'));
 })->name('purchase.invoice');
 
+// Route untuk bulk invoice dengan query string
 Route::get('/purchase/bulk-invoice', function (\Illuminate\Http\Request $request) {
     $ids = explode(',', $request->query('ids')); // Ambil array dari query string
     
