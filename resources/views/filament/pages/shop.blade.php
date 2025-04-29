@@ -88,10 +88,13 @@
                             @endif
                             
                             {{-- Discount Badge --}}
-                            @if($product->discount_percent > 0)
+                            @php
+                                $discountPercent = $this->getDiscountPercent($product);
+                            @endphp
+                            @if($discountPercent > 0)
                                 <div class="absolute bottom-2 left-2">
                                     <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                                        -{{ $product->discount_percent }}%
+                                        -{{ $discountPercent }}%
                                     </span>
                                 </div>
                             @endif
@@ -104,23 +107,25 @@
                                 
                                 {{-- Enhanced Price Display --}}
                                 @php
-                                    $originalPrice = $product->original_price ?? $product->price * (100 / (100 - $product->discount_percent));
+                                    $discountPercent = $this->getDiscountPercent($product);
+                                    $currentPrice = $this->getProductPrice($product);
+                                    $originalPrice = $product->price;
                                 @endphp
                                 
                                 <div class="mt-1">
-                                    @if($product->discount_percent > 0)
+                                    @if($discountPercent > 0)
                                         <div class="flex items-center gap-2">
                                             <p class="text-gray-500 text-xs line-through">
                                                 Rp{{ number_format($originalPrice, 0, ',', '.') }}
                                             </p>
                                             <p class="text-red-600 text-sm font-bold">
-                                                Rp{{ number_format($product->price, 0, ',', '.') }}
+                                                Rp{{ number_format($currentPrice, 0, ',', '.') }}
                                             </p>
                                         </div>
-                                        <p class="text-green-600 text-xs mt-0.5">Hemat Rp{{ number_format($originalPrice - $product->price, 0, ',', '.') }}</p>
+                                        <p class="text-green-600 text-xs mt-0.5">Hemat Rp{{ number_format($originalPrice - $currentPrice, 0, ',', '.') }}</p>
                                     @else
                                         <p class="text-red-600 text-sm font-bold">
-                                            Rp{{ number_format($product->price, 0, ',', '.') }}
+                                            Rp{{ number_format($currentPrice, 0, ',', '.') }}
                                         </p>
                                     @endif
                                 </div>
@@ -240,24 +245,23 @@
                                             
                                             {{-- Enhanced Price Display in Cart --}}
                                             @php
-                                                $originalPrice = $item['product']->original_price ?? 
-                                                    ($item['product']->discount_percent > 0 ? 
-                                                    $item['product']->price * (100 / (100 - $item['product']->discount_percent)) : 
-                                                    $item['product']->price);
+                                                $discountPercent = $this->getDiscountPercent($item['product']);
+                                                $currentPrice = $this->getProductPrice($item['product']);
+                                                $originalPrice = $item['product']->price;
                                             @endphp
                                             
-                                            @if($item['product']->discount_percent > 0)
+                                            @if($discountPercent > 0)
                                                 <span class="text-xs text-gray-500">× 
                                                     <span class="line-through">Rp{{ number_format($originalPrice, 0, ',', '.') }}</span>
-                                                    <span class="text-red-600">Rp{{ number_format($item['product']->price, 0, ',', '.') }}</span>
+                                                    <span class="text-red-600">Rp{{ number_format($currentPrice, 0, ',', '.') }}</span>
                                                 </span>
                                             @else
                                                 <span class="text-xs text-gray-500">×
-                                                    Rp{{ number_format($item['product']->price, 0, ',', '.') }}</span>
+                                                    Rp{{ number_format($currentPrice, 0, ',', '.') }}</span>
                                             @endif
                                         </div>
                                         <span class="text-sm font-medium">
-                                            Rp{{ number_format($item['product']->price * $item['quantity'], 0, ',', '.') }}
+                                            Rp{{ number_format($currentPrice * $item['quantity'], 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
@@ -284,14 +288,17 @@
                         <div class="space-y-2">
                             {{-- Cart Summary with Savings Calculation --}}
                             @php
-                                $subtotal = collect($this->getCartItems())->sum(fn($item) => $item['product']->price * $item['quantity']);
-                                $originalSubtotal = collect($this->getCartItems())->sum(function($item) {
-                                    $originalPrice = $item['product']->original_price ?? 
-                                        ($item['product']->discount_percent > 0 ? 
-                                            $item['product']->price * (100 / (100 - $item['product']->discount_percent)) : 
-                                            $item['product']->price);
-                                    return $originalPrice * $item['quantity'];
-                                });
+                                $subtotal = 0;
+                                $originalSubtotal = 0;
+                                
+                                foreach ($this->getCartItems() as $item) {
+                                    $currentPrice = $this->getProductPrice($item['product']);
+                                    $originalPrice = $item['product']->price;
+                                    
+                                    $subtotal += $currentPrice * $item['quantity'];
+                                    $originalSubtotal += $originalPrice * $item['quantity'];
+                                }
+                                
                                 $totalSavings = $originalSubtotal - $subtotal;
                             @endphp
                             
