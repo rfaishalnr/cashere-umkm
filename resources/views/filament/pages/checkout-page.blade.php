@@ -127,12 +127,12 @@
 
                     <div class="p-4 space-y-4">
                         {{-- Input Nama Pelanggan --}}
-                        <div>
+                        {{-- <div>
                             <label for="customerName" class="block text-sm font-medium text-gray-700">Nama
                                 Pelanggan</label>
                             <input type="text" wire:model="customerName" id="customerName"
                                 class="w-full mt-1 border-gray-300 rounded-lg shadow-sm" placeholder="(opsional)" />
-                        </div>
+                        </div> --}}
 
                         {{-- Select Payment Method --}}
                         <div>

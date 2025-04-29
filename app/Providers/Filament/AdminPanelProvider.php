@@ -31,6 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->registration()
             ->sidebarCollapsibleOnDesktop()
             // ->sidebarFullyCollapsibleOnDesktop()
+            ->brandName('Cashere')
             ->colors([
                 'primary' => Color::Amber,
             ])

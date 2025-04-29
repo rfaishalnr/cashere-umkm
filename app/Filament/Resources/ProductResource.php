@@ -130,7 +130,7 @@ class ProductResource extends Resource
                     ->default('-'),
                     
                 IconColumn::make('is_promo_active')
-                    ->label('Promo Aktif')
+                    ->label('Promo')
                     ->boolean()
                     ->trueIcon('heroicon-o-tag')
                     ->falseIcon('heroicon-o-x-mark')

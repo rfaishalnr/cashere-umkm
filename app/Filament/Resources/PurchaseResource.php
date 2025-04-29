@@ -34,9 +34,9 @@ class PurchaseResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('customer_name')
-                    ->label('Nama Pembeli')
-                    ->searchable(),
+                // Tables\Columns\TextColumn::make('customer_name')
+                //     ->label('Nama Pembeli')
+                //     ->searchable(),
 
                 Tables\Columns\TextColumn::make('product_name')
                     ->label('Produk')
@@ -93,13 +93,15 @@ class PurchaseResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
 
                     Tables\Actions\BulkAction::make('printInvoices')
-                        ->label('Cetak Invoice')
-                        ->icon('heroicon-o-printer')
-                        ->action(function (Collection $records) {
-                            $ids = $records->pluck('id')->join(',');
-                            return redirect()->route('purchase.bulk-invoice', ['ids' => $ids]);
-                        })
-                        ->deselectRecordsAfterCompletion(),
+                    ->label('Cetak Invoice')
+                    ->icon('heroicon-o-printer')
+                    ->action(function (Collection $records) {
+                        $ids = $records->pluck('id')->toArray();
+                        $encodedIds = implode(',', $ids);
+                        return redirect()->route('purchase.bulk-invoice', ['ids' => $encodedIds]);
+                    })
+                    ->deselectRecordsAfterCompletion(),
+                
                 ]),
             ]);
     }
