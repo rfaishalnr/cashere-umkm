@@ -8,10 +8,11 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
+Route::redirect('/', '/admin');
 
 Route::get('/purchase/invoice/{purchase}', function (Purchase $purchase) {
     // Make sure the purchase belongs to the current user
