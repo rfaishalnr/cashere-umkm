@@ -24,6 +24,70 @@
         </div>
     @endif
 
+    {{-- Toggle Fitur Setting Section --}}
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
+        <div class="p-4 bg-gray-50 border-b">
+            <h2 class="font-medium text-lg">Pengaturan Fitur</h2>
+        </div>
+        <div class="p-4 space-y-4">
+            {{-- Nama Customer Toggle --}}
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-medium">Nama Customer</h3>
+                    <p class="text-sm text-gray-500">Aktifkan fitur nama customer untuk mencatat informasi pelanggan</p>
+                </div>
+                <button type="button" wire:click="toggleCustomerName"
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                                {{ $enableCustomerName ? 'bg-primary-600' : 'bg-gray-200' }} 
+                                transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    <span aria-hidden="true"
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 
+                                    transition duration-200 ease-in-out 
+                                    {{ $enableCustomerName ? 'translate-x-5' : 'translate-x-0' }}">
+                    </span>
+                </button>
+            </div>
+            {{-- Tipe Pesanan Toggle --}}
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-medium">Tipe Pesanan</h3>
+                    <p class="text-sm text-gray-500">Aktifkan fitur tipe pesanan untuk mengkategorikan pesanan (Makan di
+                        Tempat/Takeaway)</p>
+                </div>
+                <button type="button" wire:click="toggleOrderType"
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                    {{ $enableOrderType ? 'bg-primary-600' : 'bg-gray-200' }} 
+                    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    <span aria-hidden="true"
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 
+                        transition duration-200 ease-in-out 
+                        {{ $enableOrderType ? 'translate-x-5' : 'translate-x-0' }}">
+                    </span>
+                </button>
+            </div>
+
+
+
+            {{-- Auto Print Invoice Toggle --}}
+            {{-- <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-medium">Print Invoice Otomatis (Belum Berfungsi)</h3>
+                    <p class="text-sm text-gray-500">Aktifkan fitur print invoice otomatis setelah pembayaran</p>
+                </div>
+                <button type="button" wire:click="toggleAutoPrint" 
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                    {{ $enableAutoPrint ? 'bg-primary-600' : 'bg-gray-200' }} 
+                    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    <span aria-hidden="true" 
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 
+                        transition duration-200 ease-in-out 
+                        {{ $enableAutoPrint ? 'translate-x-5' : 'translate-x-0' }}">
+                    </span>
+                </button>
+            </div> --}}
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Daftar Item --}}
         <div class="lg:col-span-2">
@@ -67,7 +131,8 @@
                                                     Rp{{ number_format($item['price'], 0, ',', '.') }}
                                                 </span> ×
                                                 {{ $item['quantity'] }}
-                                                <span class="ml-1 bg-green-100 text-green-700 px-1 py-0.5 rounded text-xs">Promo</span>
+                                                <span
+                                                    class="ml-1 bg-green-100 text-green-700 px-1 py-0.5 rounded text-xs">Promo</span>
                                             @else
                                                 Rp{{ number_format($item['price'], 0, ',', '.') }} ×
                                                 {{ $item['quantity'] }}
@@ -126,13 +191,16 @@
                     </div>
 
                     <div class="p-4 space-y-4">
-                        {{-- Input Nama Pelanggan --}}
-                        {{-- <div>
-                            <label for="customerName" class="block text-sm font-medium text-gray-700">Nama
-                                Pelanggan</label>
-                            <input type="text" wire:model="customerName" id="customerName"
-                                class="w-full mt-1 border-gray-300 rounded-lg shadow-sm" placeholder="(opsional)" />
-                        </div> --}}
+                        {{-- Input Nama Pelanggan (Only shown if enabled) --}}
+                        @if ($enableCustomerName)
+                            <div>
+                                <label for="customerName" class="block text-sm font-medium text-gray-700">Nama
+                                    Pelanggan</label>
+                                <input type="text" wire:model="customerName" id="customerName"
+                                    class="w-full mt-1 border-gray-300 rounded-lg shadow-sm"
+                                    placeholder="Masukan Nama" />
+                            </div>
+                        @endif
 
                         {{-- Select Payment Method --}}
                         <div>
@@ -145,15 +213,18 @@
                             </select>
                         </div>
 
-                        {{-- Select Order Type --}}
-                        <div>
-                            <label for="orderType" class="block text-sm font-medium text-gray-700">Tipe Pesanan</label>
-                            <select id="orderType" wire:model="orderType"
-                                class="w-full mt-1 border-gray-300 rounded-lg shadow-sm">
-                                <option value="Makan di Tempat">Makan di Tempat</option>
-                                <option value="takeaway">Takeaway</option>
-                            </select>
-                        </div>
+                        {{-- Select Order Type (Only shown if enabled) --}}
+                        @if ($enableOrderType)
+                            <div>
+                                <label for="orderType" class="block text-sm font-medium text-gray-700">Tipe
+                                    Pesanan</label>
+                                <select id="orderType" wire:model="orderType"
+                                    class="w-full mt-1 border-gray-300 rounded-lg shadow-sm">
+                                    <option value="Makan di Tempat">Makan di Tempat</option>
+                                    <option value="Takeaway">Takeaway</option>
+                                </select>
+                            </div>
+                        @endif
 
                         {{-- Ringkasan Total --}}
                         @php
@@ -170,14 +241,15 @@
                                 <span class="text-gray-600">Subtotal</span>
                                 <span>Rp{{ number_format($subtotal, 0, ',', '.') }}</span>
                             </div>
-                            
-                            @if($totalSavings > 0)
-                            <div class="flex justify-between text-sm">
-                                <span class="text-green-600">Penghematan</span>
-                                <span class="text-green-600">-Rp{{ number_format($totalSavings, 0, ',', '.') }}</span>
-                            </div>
+
+                            @if ($totalSavings > 0)
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-green-600">hemat</span>
+                                    <span
+                                        class="text-green-600">-Rp{{ number_format($totalSavings, 0, ',', '.') }}</span>
+                                </div>
                             @endif
-                            
+
                             {{-- <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Pajak (10%)</span>
                                 <span>Rp{{ number_format($tax, 0, ',', '.') }}</span>
@@ -203,11 +275,7 @@
     </div>
 
     {{-- Modal Sukses --}}
-    <x-filament::modal id="successModal" 
-        :open="$showSuccessModal" 
-        width="md" 
-        align="center"
-        :close-button="false">
+    <x-filament::modal id="successModal" :open="$showSuccessModal" width="md" align="center" :close-button="false">
         <x-slot name="header">
             <div class="flex items-center gap-2">
                 <x-filament::icon name="heroicon-o-check-circle" class="w-8 h-8 text-success-500" />
@@ -236,7 +304,12 @@
         </div>
 
         <x-slot name="footer">
-            <div class="flex justify-center">
+            <div class="flex flex-col gap-3 w-full">
+                <x-filament::button color="primary" wire:click="printInvoice" class="w-full">
+                    <x-filament::icon name="heroicon-o-printer" class="w-5 h-5 mr-1" />
+                    Print Invoice
+                </x-filament::button>
+
                 <x-filament::button color="success" wire:click="closeSuccessModalAndRedirect" class="w-full">
                     <x-filament::icon name="heroicon-o-shopping-bag" class="w-5 h-5 mr-1" />
                     Kembali ke Toko
@@ -244,4 +317,17 @@
             </div>
         </x-slot>
     </x-filament::modal>
+
+    {{-- Auto Print Script --}}
+    {{-- @if ($enableAutoPrint && $showSuccessModal)
+    <script>
+        // Auto print script
+        document.addEventListener('DOMContentLoaded', function() {
+            // Delay slightly to ensure modal is fully visible
+            setTimeout(function() {
+                window.location.href = "{{ route('purchase.bulk-invoice-alt', $lastOrderId) }}";
+            }, 500);
+        });
+    </script>
+    @endif --}}
 </x-filament::page>

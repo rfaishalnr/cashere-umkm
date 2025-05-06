@@ -24,6 +24,8 @@ class ProductResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-plus-circle';
     protected static ?string $navigationLabel = 'Tambah Produk';
 
+    public static ?string $label = 'Tambah Produk';
+    
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -65,7 +67,7 @@ class ProductResource extends Resource
                 ->collapsible(),
 
             Forms\Components\TextInput::make('stock')
-                ->label('Stok Produk')
+                ->label('Stok Produk (Jika diperlukan)')
                 ->numeric()
                 ->minValue(0)
                 ->nullable(),

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('purchases', function (Blueprint $table) {
             $table->string('customer_name')->nullable();
             $table->string('payment_method')->default('Cash');
-            $table->string('order_type')->default('Makan di tempat');
+            $table->string('order_type')->default('Makan di tempat')->nullable();
         });
     }
 

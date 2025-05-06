@@ -12,10 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            // Tambahkan kolom promo_price setelah kolom price
             $table->decimal('promo_price', 10, 2)->nullable()->after('price');
-            
-            // Tambahkan kolom is_promo_active setelah kolom promo_price
+
             $table->boolean('is_promo_active')->default(false)->after('promo_price');
         });
     }

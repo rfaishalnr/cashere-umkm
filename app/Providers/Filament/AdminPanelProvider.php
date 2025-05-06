@@ -31,10 +31,26 @@ class AdminPanelProvider extends PanelProvider
             ->registration()
             ->sidebarCollapsibleOnDesktop()
             // ->sidebarFullyCollapsibleOnDesktop()
+            
+            // ->brandName('Cashere')
+            // ->colors([
+            //     'primary' => Color::Amber,
+            // ])
+
             ->brandName('Cashere')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Blue,
+                'secondary' => Color::Slate,
+                'gray' => Color::Gray,
+                'danger' => Color::Rose,
+                'info' => Color::Sky,
+                'success' => Color::Emerald,
+                'warning' => Color::Amber,
             ])
+            // ->brandLogo(asset('images/logo.png'))
+            ->favicon(asset('images/favicon.ico'))
+            ->darkMode()
+
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([

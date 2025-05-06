@@ -1,15 +1,131 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .invoice-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            margin-bottom: 5px;
+        }
+
+        .summary-box {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .invoice {
+            margin-bottom: 40px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .invoice-header {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .invoice-details {
+            margin-bottom: 15px;
+        }
+
+        .invoice-items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .invoice-items th,
+        .invoice-items td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .invoice-items th {
+            background-color: #f5f5f5;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #f5f5f5;
+        }
+
+        .invoice-footer {
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* @media print {
+            body {
+                font-size: 10px;
+                margin: 0;
+                padding: 0;
+                width: 58mm;
+            }
+
+            .invoice-container {
+                width: 100%;
+                padding: 0 5px;
+            }
+
+            .invoice,
+            .summary-box,
+            .header {
+                padding: 0;
+                margin: 0 0 10px 0;
+                border: none;
+            }
+
+            .invoice-items th,
+            .invoice-items td {
+                font-size: 10px;
+                padding: 3px;
+            } */
+        }
+    </style>
 </head>
-<body class="bg-gray-100 p-5 text-gray-800 font-sans">
-    <div class="max-w-3xl mx-auto">
-        <div class="text-center mb-8 border-b-2 border-gray-800 pb-3">
-            <h1 class="text-2xl font-bold mb-1">Invoice Pembelian</h1>
+
+<body>
+    <div class="invoice-container">
+        <div class="header">
+            <h1>Cashere</h1>
+            <p>Invoice Pembelian</p>
             <p>Tanggal Cetak: {{ date('d F Y') }}</p>
         </div>
 
@@ -17,36 +133,36 @@
             $totalAmount = $purchase->total_price;
         @endphp
 
-        <div class="bg-gray-100 border border-gray-300 rounded-lg p-4 mb-8">
-            <div class="flex justify-between mb-2">
-                <span>Total Invoice:</span>
+        <div class="summary-box">
+            <div class="summary-row">
+                <span>Total Barang:</span>
                 <span>1</span>
             </div>
-            <div class="flex justify-between">
-                <span>Total Nilai:</span>
+            <div class="summary-row">
+                <span>Total harga:</span>
                 <span>Rp{{ number_format($totalAmount, 0, ',', '.') }}</span>
             </div>
         </div>
-        
-        <div class="border border-gray-300 rounded-lg p-5 mb-10">
-            <div class="flex justify-between border-b border-gray-300 pb-3 mb-4">
+
+        <div class="invoice">
+            <div class="invoice-header">
                 <div>
-                    <h2 class="text-xl font-bold">INVOICE</h2>
-                    <p>No. #{{ $purchase->id }}</p>
+                    <h2>INVOICE</h2>
+                    <p>No. Referensi: #{{ $purchase->id }}</p>
                 </div>
-                <div class="text-right">
+                <div style="text-align: right;">
                     <p>Tanggal: {{ $purchase->purchased_at->format('d F Y') }}</p>
                     <p>Waktu: {{ $purchase->purchased_at->format('H:i') }} WIB</p>
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="invoice-details">
                 @if($purchase->customer_name)
-                    <p class="mb-1"><strong>Nama Pelanggan:</strong> {{ $purchase->customer_name }} ({{ $purchase->customer_id }})</p>
+                    <p><strong>Nama Pelanggan:</strong> {{ $purchase->customer_name }} ({{ $purchase->customer_id }})</p>
                 @endif
                 
                 @if($purchase->payment_method)
-                    <p class="mb-1"><strong>Metode Pembayaran:</strong> {{ $purchase->payment_method }}</p>
+                    <p><strong>Metode Pembayaran:</strong> {{ $purchase->payment_method }}</p>
                 @endif
                 
                 @if($purchase->order_type)
@@ -54,36 +170,37 @@
                 @endif
             </div>
 
-            <table class="w-full border-collapse mb-4">
+            <table class="invoice-items">
                 <thead>
                     <tr>
-                        <th class="border border-gray-300 p-2 text-left bg-gray-100">Produk</th>
-                        <th class="border border-gray-300 p-2 text-left bg-gray-100">Harga Satuan</th>
-                        <th class="border border-gray-300 p-2 text-left bg-gray-100">Jumlah</th>
-                        <th class="border border-gray-300 p-2 text-left bg-gray-100">Total</th>
+                        <th>Produk</th>
+                        <th>Harga Satuan</th>
+                        <th>Jumlah</th>
+                        <th>Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td class="border border-gray-300 p-2">{{ $purchase->product_name }}</td>
-                        <td class="border border-gray-300 p-2">Rp{{ number_format($purchase->price, 0, ',', '.') }}</td>
-                        <td class="border border-gray-300 p-2">{{ $purchase->quantity }} pcs</td>
-                        <td class="border border-gray-300 p-2">Rp{{ number_format($purchase->total_price, 0, ',', '.') }}</td>
+                        <td>{{ $purchase->product_name }}</td>
+                        <td>Rp{{ number_format($purchase->price, 0, ',', '.') }}</td>
+                        <td>{{ $purchase->quantity }} pcs</td>
+                        <td>Rp{{ number_format($purchase->total_price, 0, ',', '.') }}</td>
                     </tr>
                 </tbody>
                 <tfoot>
-                    <tr class="font-bold bg-gray-100">
-                        <td colspan="3" class="border border-gray-300 p-2 text-right"><strong>TOTAL PEMBAYARAN</strong></td>
-                        <td class="border border-gray-300 p-2">Rp{{ number_format($purchase->total_price, 0, ',', '.') }}</td>
+                    <tr class="total-row">
+                        <td colspan="3" style="text-align: right;"><strong>TOTAL PEMBAYARAN</strong></td>
+                        <td>Rp{{ number_format($totalAmount, 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
             </table>
 
-            <div class="border-t border-gray-300 pt-3 text-center italic">
+            <div class="invoice-footer">
                 <p>Terima Kasih Atas Pembelian Anda</p>
                 {{-- <p>Jika ada pertanyaan mengenai invoice ini, silakan hubungi customer service kami.</p> --}}
             </div>
         </div>
     </div>
 </body>
+
 </html>

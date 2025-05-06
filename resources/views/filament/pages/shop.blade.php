@@ -49,9 +49,11 @@
                 </div>
 
                 {{-- Per Page Selector --}}
-                <div class="flex items-center gap-2">
-                    <label for="perPage" class="text-sm text-gray-600">Produk per halaman:</label>
-                    <select id="perPage" onchange="location.href='{{ request()->url() }}?category={{ $activeCategory }}&perPage='+this.value" class="border-gray-300 rounded text-sm">
+                <div class="flex items-center gap-3 mb-4 p-3 bg-white rounded shadow-sm border">
+                    <label for="perPage" class="text-sm font-medium text-gray-700 whitespace-nowrap">Produk per halaman:</label>
+                    <select id="perPage"
+                        onchange="location.href='{{ request()->url() }}?category={{ $activeCategory }}&perPage='+this.value"
+                        class="border border-gray-300 rounded-md text-sm px-6 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white bg-no-repeat bg-right">
                         @foreach($perPageOptions as $option)
                             <option value="{{ $option }}" {{ $perPage == $option ? 'selected' : '' }}>{{ $option }}</option>
                         @endforeach
@@ -141,18 +143,24 @@
                                 @endif
                             </div>
                             
-                            {{-- Stock Information --}}
-                            @if($product->stock !== null)
-                                <div class="mt-2">
-                                    <p class="text-xs {{ $product->stock > 0 ? 'text-gray-500' : 'text-red-500' }}">
-                                        @if($product->stock > 0)
-                                            Stok: {{ $product->stock }}
-                                        @else
-                                            <span>Stok Habis</span>
-                                        @endif
-                                    </p>
-                                </div>
-                            @endif
+{{-- Stock Information --}}
+@if($product->stock !== null)
+    <div class="mt-2">
+        <p class="text-xs {{ $product->stock > 0 ? 'text-gray-500' : 'text-red-500' }}">
+            @if($product->stock > 0)
+                Stok: {{ $product->stock }}
+            @else
+                <span>Stok Habis</span>
+            @endif
+        </p>
+    </div>
+@else
+    <div class="mt-2">
+        <p class="text-xs text-gray-500">
+            <span></span>
+        </p>
+    </div>
+@endif
                         </div>
                     </div>
                 @endforeach

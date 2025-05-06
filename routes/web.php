@@ -50,7 +50,7 @@ Route::get('/admin/purchases/download-pdf', function () {
         : collect(); // Empty collection if not authenticated
         
     $pdf = Pdf::loadView('pdf.purchases', ['purchases' => $purchases]);
-    return $pdf->download('riwayat_pembelian.pdf');
+    return $pdf->stream('riwayat_pembelian.pdf');
 })->name('purchase.downloadPdf');
 
 Route::get('/debug-image/{filename}', function ($filename) {
@@ -63,21 +63,22 @@ Route::get('/debug-image/{filename}', function ($filename) {
     return response()->file($path);
 });
 
-Route::get('purchases/bulk-invoice/{ids}', function($ids) {
+Route::get('purchase/bulk-invoice/{ids}', function($ids) {
     $idArray = explode(',', $ids);
-    
-    // Only get purchases belonging to the current user
+
     if (Auth::check()) {
         $purchases = Purchase::whereIn('id', $idArray)
             ->where('user_id', Auth::id())
             ->get();
-        
+
         if ($purchases->isEmpty()) {
             abort(404, 'No purchases found or you are not authorized to access them.');
         }
-        
-        return Purchase::bulkInvoice($purchases);
+
+        return view('purchase.bulk-invoice', [
+            'purchases' => $purchases
+        ]);
     }
-    
-    return redirect()->route('login'); // Redirect to login if not authenticated
+
+    return redirect()->route('login');
 })->name('purchase.bulk-invoice-alt');

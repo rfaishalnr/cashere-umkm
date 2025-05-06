@@ -24,6 +24,13 @@ class Product extends Model
         'is_visible'
     ];
 
+    protected $appends = [
+        'image_url',
+        'discount_percentage',
+        'current_price',
+        'current_stock',
+    ];
+
     protected static function booted()
     {
         static::creating(function ($product) {
@@ -58,6 +65,26 @@ class Product extends Model
         }
         return 0;
     }
+    
+    /**
+     * Get the current available stock for this product, accounting for items in the cart.
+     * This integrates with the session-based stock tracking in the Shop page.
+     *
+     * @return int|null
+     */
+    public function getCurrentStockAttribute()
+    {
+        // If stock is null (product doesn't use stock management), return null
+        if ($this->stock === null) {
+            return null;
+        }
+        
+        // Check if there's a session value for this product's stock
+        $sessionKey = 'product_stock_' . $this->id;
+        return session()->has($sessionKey) 
+            ? session()->get($sessionKey) 
+            : $this->stock;
+    }
 
     public function scopeByCategory($query, $category)
     {
@@ -79,4 +106,6 @@ class Product extends Model
     {
         return $this->belongsTo(User::class);
     }
+    
+    
 }

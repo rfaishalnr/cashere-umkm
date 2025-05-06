@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Collection;
 use Barryvdh\DomPDF\Facade\Pdf; // Updated import
 
+
 class Purchase extends Model
 {
     use HasFactory;
@@ -105,31 +106,36 @@ class Purchase extends Model
      * @param Collection|array $purchases Collection or array of Purchase models
      * @return \Illuminate\Http\Response
      */
+
+    
     public static function bulkInvoice($purchases)
     {
         if (!$purchases instanceof Collection) {
             $purchases = collect($purchases);
         }
-
+    
         if ($purchases->isEmpty()) {
             throw new \Exception('No purchases provided for bulk invoice generation');
         }
-
+    
         // Convert IDs to model instances if needed
         if (!$purchases->first() instanceof self) {
             $purchases = self::whereIn('id', $purchases->all())->get();
         }
-
-        // Gunakan method single jika hanya satu item
+    
+        // Jika hanya satu pembelian, gunakan invoice tunggal
         if ($purchases->count() === 1) {
             return $purchases->first()->generateInvoice();
         }
-
+    
         $data = [
             'purchases' => $purchases
         ];
-
+    
         $pdf = Pdf::loadView('purchase.bulk-invoice', $data);
-        return $pdf->download('bulk-invoices-' . date('Y-m-d') . '.pdf');
+    
+        // Ganti dari download menjadi stream untuk preview di tab baru
+        return $pdf->stream('bulk-invoices-' . date('Y-m-d') . '.pdf');
     }
+    
 }
