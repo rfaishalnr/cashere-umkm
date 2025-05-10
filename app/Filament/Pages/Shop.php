@@ -6,6 +6,7 @@ use App\Models\Product;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Session;
 
 class Shop extends Page
 {
@@ -13,6 +14,18 @@ class Shop extends Page
     protected static string $view = 'filament.pages.shop';
     protected static ?string $navigationLabel = 'Shop';
     protected static ?string $title = 'Shop';
+    
+    // Flag untuk mengontrol notifikasi
+    protected $notificationsEnabled = true;
+    
+    // Properti untuk pelacakan penyesuaian stok
+    protected $adjustedProducts = [];
+    
+    public function mount()
+    {
+        // Membersihkan flag penyesuaian yang mungkin tersimpan di session
+        session()->forget('cart_adjusted');
+    }
 
     public function getProducts()
     {
@@ -88,8 +101,44 @@ class Shop extends Page
         return $product->stock >= $requestedQuantity;
     }
     
+    /**
+     * Menonaktifkan notifikasi sementara
+     */
+    private function disableNotifications()
+    {
+        $this->notificationsEnabled = false;
+    }
+    
+    /**
+     * Mengaktifkan notifikasi kembali
+     */
+    private function enableNotifications()
+    {
+        $this->notificationsEnabled = true;
+    }
+    
+    /**
+     * Mengirim notifikasi jika diizinkan
+     */
+    private function sendNotification($type, $title, $body)
+    {
+        if ($this->notificationsEnabled) {
+            Notification::make()
+                ->$type()
+                ->title($title)
+                ->body($body)
+                ->send();
+        }
+    }
+    
     public function getCartItems(): array
     {
+        // Cek apakah penyesuaian sudah dilakukan di request ini
+        if (session()->has('cart_adjusted')) {
+            $cartItems = session()->get('adjusted_cart_items', []);
+            return $cartItems;
+        }
+        
         $cart = session()->get('cart', []);
         $productIds = array_column($cart, 'id');
         
@@ -100,6 +149,11 @@ class Shop extends Page
             ->get();
 
         $cartItems = [];
+        $adjustmentsMade = false;
+        $this->adjustedProducts = [];
+
+        // Nonaktifkan notifikasi sementara selama proses penyesuaian
+        $this->disableNotifications();
 
         foreach ($products as $product) {
             foreach ($cart as $cartItem) {
@@ -115,11 +169,9 @@ class Shop extends Page
                         // Update the cart with corrected quantity
                         $this->updateCartItemQuantity($cartItem['id'], $quantity);
                         
-                        Notification::make()
-                            ->title('Jumlah Disesuaikan')
-                            ->warning()
-                            ->body("Kuantitas {$product->name} disesuaikan dengan stok yang tersedia ({$product->stock}).")
-                            ->send();
+                        // Track this product as adjusted
+                        $adjustmentsMade = true;
+                        $this->adjustedProducts[] = $product->name;
                     }
                     
                     $cartItems[] = [
@@ -133,6 +185,22 @@ class Shop extends Page
 
         // Clean up cart by removing items that are no longer visible
         $this->cleanupCart($productIds, $products);
+        
+        // Menyimpan hasil di session untuk mencegah kalkulasi & notifikasi berulang
+        session()->put('cart_adjusted', true);
+        session()->put('adjusted_cart_items', $cartItems);
+        
+        // Aktifkan notifikasi kembali
+        $this->enableNotifications();
+        
+        // Kirim notifikasi penyesuaian sekali saja
+        if ($adjustmentsMade) {
+            $message = count($this->adjustedProducts) > 1 
+                ? "Beberapa produk disesuaikan dengan stok yang tersedia." 
+                : "Kuantitas {$this->adjustedProducts[0]} disesuaikan dengan stok yang tersedia.";
+                
+            $this->sendNotification('warning', 'Jumlah Disesuaikan', $message);
+        }
 
         return $cartItems;
     }
@@ -157,11 +225,7 @@ class Shop extends Page
             
             // Notify user that some items were removed from cart
             if (count($productsToRemove) > 0) {
-                Notification::make()
-                    ->title('Cart Updated')
-                    ->warning()
-                    ->body('Some items in your cart are no longer available and have been removed.')
-                    ->send();
+                $this->sendNotification('warning', 'Cart Updated', 'Some items in your cart are no longer available and have been removed.');
             }
         }
     }
@@ -185,6 +249,10 @@ class Shop extends Page
         }
         
         session()->put('cart', $cart);
+        
+        // Hapus flag penyesuaian agar keranjang dihitung ulang
+        session()->forget('cart_adjusted');
+        session()->forget('adjusted_cart_items');
     }
 
     /**
@@ -205,6 +273,10 @@ class Shop extends Page
         // Update the stock directly in the database
         $product->stock = max(0, $product->stock - $quantity);
         $product->save();
+        
+        // Hapus flag penyesuaian agar keranjang dihitung ulang
+        session()->forget('cart_adjusted');
+        session()->forget('adjusted_cart_items');
     }
     
     /**
@@ -225,22 +297,15 @@ class Shop extends Page
         $product = $this->getVisibleProduct($productId);
 
         if (!$product) {
-            Notification::make()
-                ->title('Error')
-                ->danger()
-                ->body('Produk tidak ditemukan atau tidak tersedia.')
-                ->send();
+            $this->sendNotification('danger', 'Error', 'Produk tidak ditemukan atau tidak tersedia.');
             return;
         }
 
         // Check if product has stock management enabled and is out of stock
         if ($this->usesStockManagement($product)) {
+            // If stock is 0, product is unavailable
             if ($product->stock <= 0) {
-                Notification::make()
-                    ->title('Stok Habis')
-                    ->danger()
-                    ->body('Produk ini sedang tidak tersedia.')
-                    ->send();
+                $this->sendNotification('danger', 'Stok Habis', 'Produk ini sedang tidak tersedia.');
                 return;
             }
         }
@@ -251,14 +316,11 @@ class Shop extends Page
         $exists = false;
         foreach ($cart as &$item) {
             if ($item['id'] == $productId) {
-                // If product uses stock management, check if adding more would exceed available stock
+                // If product uses stock management, check if adding more is possible
                 if ($this->usesStockManagement($product)) {
-                    if ($product->stock <= 0) {
-                        Notification::make()
-                            ->title('Stok Terbatas')
-                            ->warning()
-                            ->body("Stok sudah habis.")
-                            ->send();
+                    // If stock is 1 or less, prevent adding more
+                    if ($product->stock <= 1) {
+                        $this->sendNotification('warning', 'Stok Terbatas', 'Stok produk tidak cukup untuk menambah jumlah.');
                         return;
                     }
                 }
@@ -278,6 +340,22 @@ class Shop extends Page
 
         // If not exists, add new item
         if (!$exists) {
+            // Special check for stock=1 items to prevent adding new items with only 1 stock left
+            if ($this->usesStockManagement($product) && $product->stock == 1) {
+                $cart[] = [
+                    'id' => $productId,
+                    'quantity' => 1
+                ];
+                
+                $this->handleProductStock($product, 1);
+                
+                session()->put('cart', $cart);
+                
+                $this->sendNotification('success', 'Berhasil', 'Produk terakhir ditambahkan ke keranjang. Stok produk sudah habis.');
+                return;
+            }
+            
+            // Normal flow for products with more than 1 stock or no stock management
             $cart[] = [
                 'id' => $productId,
                 'quantity' => 1
@@ -290,6 +368,10 @@ class Shop extends Page
         }
 
         session()->put('cart', $cart);
+        
+        // Hapus flag penyesuaian agar keranjang dihitung ulang
+        session()->forget('cart_adjusted');
+        session()->forget('adjusted_cart_items');
 
         // Refresh the product data from the database to get the updated stock
         $product->refresh();
@@ -302,16 +384,12 @@ class Shop extends Page
         
         // Add stock information to notification if stock management is enabled
         if ($this->usesStockManagement($product)) {
-            if ($product->stock <= 5 && $product->stock > 0) {
+            if ($product->stock > 0 && $product->stock <= 5) {
                 $notificationMessage .= " Sisa stok: {$product->stock}.";
             }
         }
 
-        Notification::make()
-            ->title('Berhasil')
-            ->success()
-            ->body($notificationMessage)
-            ->send();
+        $this->sendNotification('success', 'Berhasil', $notificationMessage);
     }
     
     public function incrementQuantity($productId)
@@ -326,29 +404,21 @@ class Shop extends Page
         // Check if product belongs to current user and is visible
         $product = $this->getVisibleProduct($productId);
         if (!$product) {
-            Notification::make()
-                ->title('Error')
-                ->danger()
-                ->body('Produk tidak ditemukan atau tidak tersedia.')
-                ->send();
+            $this->sendNotification('danger', 'Error', 'Produk tidak ditemukan atau tidak tersedia.');
+            return;
+        }
+
+        // If product has stock management and stock is 0 or 1, prevent adding more
+        if ($this->usesStockManagement($product) && $product->stock <= 1) {
+            $this->sendNotification('warning', 'Stok Terbatas', 'Stok produk tidak cukup untuk menambah jumlah.');
             return;
         }
 
         $cart = session()->get('cart', []);
+        $updated = false;
+        
         foreach ($cart as &$item) {
             if ($item['id'] == $productId) {
-                // If product uses stock management, check if incrementing would exceed available stock
-                if ($this->usesStockManagement($product)) {
-                    if ($product->stock <= 0) {
-                        Notification::make()
-                            ->title('Stok Terbatas')
-                            ->warning()
-                            ->body("Stok sudah habis.")
-                            ->send();
-                        return;
-                    }
-                }
-                
                 // Increase quantity
                 $item['quantity']++;
                 
@@ -358,24 +428,32 @@ class Shop extends Page
                     
                     // Refresh the product to get the updated stock
                     $product->refresh();
-                    
-                    // Add stock information to notification
-                    $notificationMsg = "Jumlah ditambah.";
-                    if ($product->stock <= 5 && $product->stock > 0) {
-                        $notificationMsg .= " Sisa stok: {$product->stock}.";
-                    }
-                    
-                    Notification::make()
-                        ->title('Berhasil')
-                        ->success()
-                        ->body($notificationMsg)
-                        ->send();
                 }
                 
+                $updated = true;
                 break;
             }
         }
-        session()->put('cart', $cart);
+        
+        if ($updated) {
+            session()->put('cart', $cart);
+            
+            // Hapus flag penyesuaian agar keranjang dihitung ulang
+            session()->forget('cart_adjusted');
+            session()->forget('adjusted_cart_items');
+            
+            // Only show notification if update was actually performed
+            if ($this->usesStockManagement($product)) {
+                $notificationMsg = "Jumlah ditambah.";
+                if ($product->stock > 0 && $product->stock <= 5) {
+                    $notificationMsg .= " Sisa stok: {$product->stock}.";
+                }
+                
+                $this->sendNotification('success', 'Berhasil', $notificationMsg);
+            } else {
+                $this->sendNotification('success', 'Berhasil', 'Jumlah ditambah.');
+            }
+        }
     }
 
     public function decreaseQuantity($productId)
@@ -383,11 +461,7 @@ class Shop extends Page
         // Check if product belongs to current user and is visible
         $product = $this->getVisibleProduct($productId);
         if (!$product) {
-            Notification::make()
-                ->title('Error')
-                ->danger()
-                ->body('Produk tidak ditemukan atau tidak tersedia.')
-                ->send();
+            $this->sendNotification('danger', 'Error', 'Produk tidak ditemukan atau tidak tersedia.');
             return;
         }
 
@@ -402,6 +476,10 @@ class Shop extends Page
                     $product->stock = $product->stock + 1;
                     $product->save();
                 }
+                
+                // Hapus flag penyesuaian agar keranjang dihitung ulang
+                session()->forget('cart_adjusted');
+                session()->forget('adjusted_cart_items');
             }
         }
         session()->put('cart', $cart);
@@ -429,6 +507,10 @@ class Shop extends Page
         // Remove the item from cart
         $cart = array_filter($cart, fn($item) => $item['id'] != $productId);
         session()->put('cart', array_values($cart));
+        
+        // Hapus flag penyesuaian agar keranjang dihitung ulang
+        session()->forget('cart_adjusted');
+        session()->forget('adjusted_cart_items');
     }
 
     public function clearCart()
@@ -448,6 +530,10 @@ class Shop extends Page
         
         // Clear the cart
         session()->forget('cart');
+        
+        // Hapus flag penyesuaian agar keranjang dihitung ulang
+        session()->forget('cart_adjusted');
+        session()->forget('adjusted_cart_items');
     }
     
     /**
